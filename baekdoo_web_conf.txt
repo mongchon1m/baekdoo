@@ -1,0 +1,736 @@
+# -----------------------------------------------------------------------------------------------------------------------
+# This is Baekdoo Nginx settings
+# -----------------------------------------------------------------------------------------------------------------------
+
+user    nginx;
+
+pid              /baekdoo/baekdoo_bin/nginx/nginx.pid;
+
+# -----------------------------------------------------------------------------------------------------------------------
+# Performance tunes
+# -----------------------------------------------------------------------------------------------------------------------
+
+worker_processes         4;
+worker_rlimit_nofile    20480;
+worker_priority    0;
+
+events  {
+    use epoll;
+    worker_connections    1024;
+    multi_accept off;
+}
+
+# -----------------------------------------------------------------------------------------------------------------------
+# HTTP server setting start
+# -----------------------------------------------------------------------------------------------------------------------
+
+http  {
+    include    /baekdoo/baekdoo_bin/nginx/conf/mime.types;
+
+    output_buffers  8 16k;
+    #postpone_output 1024;
+
+    keepalive_timeout         25;
+    keepalive_requests        10000;
+    tcp_nodelay               off;
+    tcp_nopush                on;
+    reset_timedout_connection on;
+
+    sendfile     on;
+    send_timeout 30;
+
+    client_header_timeout     20s;
+    client_body_timeout       60s;
+    client_max_body_size      100m;
+    #limit_conn limit_per_ip  5;
+
+    charset       utf-8;
+    server_tokens off;
+
+    server_names_hash_bucket_size 128;
+
+    gzip            on;
+    gzip_disable    "MSIE [1-6]\.(?!.*SV1)";
+    gzip_types      text/plain text/javascript application/x-javascript text/css text/xml application/xml;
+    gzip_min_length 1024;
+    gzip_buffers    1 16k;
+
+    error_page 404 /pageNot.html;
+    error_page 403 /pageNot.html;
+    error_page 500 /systemError.html;
+    error_page 504 /systemError.html;
+
+    access_log off;
+    error_log    logs/error.log;
+
+    log_format upstream_log '$pid , $time_local , $cookie_JSESSIONID , $cookie_uid , $upstream_addr , $request_uri';
+    log_format processing_time '$request , $status , [$request_time] ';
+#    log_format zero_log '[$time_local] $request_uri  http:$status  Content-Length:$sent_http_content_length SentByte:$bytes_sent Addr:$http_x_forwarded_for UA:$http_user_agent';
+    #log_format chaton_access_log '$pid , $time_local , $remote_addr , $request_uri $upstream_cache_status';
+
+#upstream_addr , request_time, upstream_response_time ADD 20131128
+log_format zero_log '[$time_local] $request_uri http:$status Content-Length:$sent_http_content_length SentByte:$bytes_sent Addr:$http_x_forwarded_for UA:$http_user_agent Saddr:$upstream_addr ReqT:$request_time ResT:$upstream_response_time RCODE:$upstream_status REFERER:$http_referer';
+
+    #notice cache logformat
+    log_format notice_cache_log '$status $content_type $host $request_uri $request_body $upstream_cache_status';
+    #servicelist cache logformat
+    log_format servicelist_cache_log '[$time_local] $status $content_type $host $request_uri $request_body $upstream_cache_status';
+    log_format serviceinformdetail_cache_log '[$time_local] $status $content_type $host $request_uri $request_body $upstream_cache_status';
+
+#DeviceList AJAX Cache logformat
+ log_format device_cache_log '[$time_local] $status $content_type $host $request_uri $request_body $upstream_cache_status';
+#SearchKeyword AJAX Cache logformat
+ log_format searchkeyword_cache_log '[$time_local] $status $content_type $host $request_uri $request_body $upstream_cache_status';
+#ServiceList AJAX Cache logformat
+ log_format searchservicelist_cache_log '[$time_local] $status $content_type $host $request_uri $request_body $upstream_cache_status';
+#Complext AJAX Cache logformat
+ log_format completesearch_cache_log '[$time_local] $status $content_type $host $request_uri $request_body $upstream_cache_status';
+#AutoComplexSearch AJAX Cache logformat
+ log_format autocomplexsearch_cache_log '[$time_local] $status $content_type $host $request_uri $request_body $upstream_cache_status';
+
+    # noticeList AJAX Cache
+    proxy_cache_path /baekdoo/baekdoo_bin/nginx/proxy_cache/notice levels=1:1:2 keys_zone=NOTICE:100m inactive=1h;	
+
+    # ChatOn AJAX Cache
+    proxy_cache_path /baekdoo/baekdoo_bin/nginx/proxy_cache/chaton levels=1:1:2 keys_zone=CHATON:100m inactive=1h;
+
+    # serviceList AJAX Cache
+    proxy_cache_path /baekdoo/baekdoo_bin/nginx/proxy_cache/servicelist levels=1:1:2 keys_zone=SERVICELIST:100m inactive=1h;
+    
+    # serviceInformDetail AJAX Cache
+    proxy_cache_path /baekdoo/baekdoo_bin/nginx/proxy_cache/serviceinformdetail levels=1:1:2 keys_zone=SERVICEINFORMDETAIL:100m inactive=1h;
+
+# DeviceList AJAX Cache
+  proxy_cache_path /baekdoo/baekdoo_bin/nginx/proxy_cache/device levels=1:1:2 keys_zone=DEVICE:1m inactive=1h;
+# SearchKeyword AJAX Cache
+  proxy_cache_path /baekdoo/baekdoo_bin/nginx/proxy_cache/searchkeyword levels=1:1:2 keys_zone=SEARCHKEYWORD:1m inactive=1h;
+# ServiceList AJAX Cache
+  proxy_cache_path /baekdoo/baekdoo_bin/nginx/proxy_cache/searchservicelist levels=1:1:2 keys_zone=SEARCHSERVICELIST:10m inactive=1h;
+# Complext Search AJAX Cache
+  proxy_cache_path /baekdoo/baekdoo_bin/nginx/proxy_cache/completesearch levels=1:1:2 keys_zone=COMPLEXSEARCH:10m inactive=1h;
+# AutoComplexSearch AJAX  Cache
+  proxy_cache_path /baekdoo/baekdoo_bin/nginx/proxy_cache/autocomplexsearch levels=1:1:2 keys_zone=AUTOCOMPLEXSEARCH:10m inactive=1h;
+
+    # ---------------------------------------------------------------------
+    # Application servers
+    # ---------------------------------------------------------------------
+    upstream ncomportal_server {
+	sticky  path=/;
+        server 172.17.12.10:8080 fail_timeout=1m;
+        server 172.17.12.10:8180 fail_timeout=1m;
+        server 172.17.12.30:8080 fail_timeout=1m;
+        server 172.17.12.30:8180 fail_timeout=1m;
+        server 172.17.22.10:8080 fail_timeout=1m;
+        server 172.17.22.10:8180 fail_timeout=1m;
+        server 172.17.22.20:8080 fail_timeout=1m;
+        server 172.17.22.20:8180 fail_timeout=1m;
+    }
+
+    upstream admin_server {
+	#sticky path=/;
+        server 172.17.13.20:8280 fail_timeout=1m;
+	#server 172.17.23.20:8280 fail_timeout=1m;
+    }
+
+    upstream gateway_server {
+        server 172.17.13.20:8080 fail_timeout=1m;
+        server 172.17.23.20:8080 fail_timeout=1m;
+    }
+
+    upstream batch_server {
+        server 172.17.13.20:8380 fail_timeout=1m;
+        server 172.17.23.20:8380 fail_timeout=1m;
+    }
+
+    upstream baekdooservice_server {
+        server 172.17.13.20:8180 fail_timeout=1m;
+        server 172.17.23.20:8180 fail_timeout=1m;
+    }
+
+    upstream redmine_server {
+        server 172.17.23.110:80;
+    }
+
+#server {
+#    listen 80;
+#    server_name redmine.baekdoo.com;
+#    access_log off;
+
+ #   location / {
+ #      proxy_pass http://redmine_server;
+#    }
+#}
+    # ---------------------------------------------------------------------
+    # N.com Static
+    # ---------------------------------------------------------------------
+
+    # ---------------------------------------------------------------------
+    # N.com Portal server
+    # ---------------------------------------------------------------------
+
+    server {
+        listen 80;
+        server_name.baekdoo.com;
+        access_log /baekdoo/baekdoo_bin/nginx/logs/ncomportal.access.log zero_log;
+        #access_log /baekdoo/baekdoo_bin/nginx/logs/ncomportal.access_time.log processing_time;
+	error_log /baekdoo/baekdoo_bin/nginx/logs/ncomportal.error.log;
+
+        root /home/hudson/wwwdoc.baekdoo.com/;
+
+#Parking Page
+#location = /maintenance_pc.html {
+# return 502;
+#}
+#location = /maintenance_mobile.html {
+# return 502;
+#}
+#location = /maintenance_tv.html {
+# return 502;
+#}
+
+   if ( $http_x_forwarded_for ~* ^89.209.13.93 ) {
+      return 403 ;
+   }
+
+   if ( $http_x_forwarded_for ~* ^212.150.246 ) {
+      return 403 ;
+   }
+
+   #20140424
+   if ( $http_x_forwarded_for ~* 93\.115\.83\.250 ) {
+      return 403 ;
+   }
+
+
+        location ~* \.(jpg|jpeg|gif|css|png|js|ico|html|htm|swf|pdf|flv|csv|mp4|apk|xml|snb|txt|json)$ {
+            access_log off;
+        }
+
+        location ~* \.(woff|ttf|eot|otf)$ {
+            add_header Access-Control-Allow-Origin *;
+        }
+
+        # Except for IR Country
+      #  location /ir/ {
+      #     rewrite ^ http://$server_name/common/selectyourcountry.do;
+      #  }
+
+#	location /mobile/ir/ {
+#	   rewrite ^ http://$server_name/common/404.do;
+#	}
+
+
+	# ExoEvent Redirect
+        location /exoevent {
+           rewrite ^ http://$server_name/mobile/kr/event/eventDetail.do?eventSeq=405;
+        }
+
+	# Milkmusic Redirect(for iPhone) 2014.09.23
+        location /milk {
+           rewrite ^ http://$server_name/static/milk/mobile/index.html;
+        }
+
+#        location /common/booksNotice.do {
+#           rewrite ^ http://help.baekdoo.com;
+#        }
+
+        # Redirect to /global for apps's /go url
+        location /go {
+            rewrite ^ http://$server_name/global/main.do;
+        }
+	
+	# Redirect to ~/contents/aboutn/edit
+	location ~ "^(/[a-zA-Z0-9][a-zA-Z0-9]/contents/aboutn/edit)$" {
+                return 403;
+	}
+
+        #UA BLOCK(empty,-,null,NULL)
+        #if ($http_user_agent = "") { return 403; }
+        #if ($http_user_agent = "-") { return 403; }
+        #if ($http_user_agent = "null") { return 403; }
+        #if ($http_user_agent = "NULL") { return 403; }
+
+        # ChatOn AJAX Cache
+        # Except for /svc/ajax/gateway/chaton/getChatonFriednChatJson
+        location ~ /svc/ajax/gateway/chaton/getChatOn {
+
+	    #access_log /baekdoo/baekdoo_bin/nginx/logs/chaton.access.log chaton_access_log;
+
+            proxy_pass http://ncomportal_server;
+            proxy_next_upstream timeout error;
+            proxy_connect_timeout 10;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+            proxy_cache_key       "$host$request_uri";
+            proxy_cache           CHATON;   # Cache Zone name
+            proxy_cache_valid     200 5m;   # Only for HTTP_200, 1 Hour cache
+            proxy_cache_use_stale updating; # Repeatable read
+
+            break;
+        }
+
+# DeviceList AJAX Cache
+location ~ /svc/ajax/gateway/search/getSearchResultDeviceListJson {
+   access_log /baekdoo/baekdoo_bin/nginx/logs/device.cache.log device_cache_log;
+   proxy_pass http://ncomportal_server;
+   proxy_next_upstream timeout error;
+   proxy_connect_timeout 10;
+   proxy_set_header Host $host;
+   proxy_set_header X-Real-IP $remote_addr;
+   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+   proxy_cache_key       "$host$request_uri";
+   proxy_cache           DEVICE;   # Cache Zone name
+   proxy_cache_valid     200 5m;   # Only for HTTP_200, 1 Hour cache
+   proxy_cache_use_stale updating; # Repeatable read
+   break;
+}
+
+# SearchKeyword AJAX Cache
+location ~ /svc/ajax/gateway/search/getSearchKeywordInfoJson {
+   access_log /baekdoo/baekdoo_bin/nginx/logs/searchkeyword.cache.log searchkeyword_cache_log;
+   proxy_pass http://ncomportal_server;
+   proxy_next_upstream timeout error;
+   proxy_connect_timeout 10;
+   proxy_set_header Host $host;
+   proxy_set_header X-Real-IP $remote_addr;
+   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+   proxy_cache_key       "$host$request_uri";
+   proxy_cache           SEARCHKEYWORD;   # Cache Zone name
+   proxy_cache_valid     200 5m;   # Only for HTTP_200, 1 Hour cache
+   proxy_cache_use_stale updating; # Repeatable read
+   break;
+}
+
+# SEARCHSERVICELIST AJAX Cache
+location ~ /svc/ajax/gateway/search/getSearchResultServiceListJson {
+   access_log /baekdoo/baekdoo_bin/nginx/logs/searchservicelist.cache.log searchservicelist_cache_log;
+   proxy_pass http://ncomportal_server;
+   proxy_next_upstream timeout error;
+   proxy_connect_timeout 10;
+   proxy_set_header Host $host;
+   proxy_set_header X-Real-IP $remote_addr;
+   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+   proxy_cache_key       "$host$request_uri";
+   proxy_cache           SEARCHSERVICELIST;   # Cache Zone name
+   proxy_cache_valid     200 5m;   # Only for HTTP_200, 1 Hour cache
+   proxy_cache_use_stale updating; # Repeatable read
+   break;
+}
+
+# Complext Search AJAX Cache
+location ~ /svc/ajax/gateway/search/getSspComplexSearchJson {
+   access_log /baekdoo/baekdoo_bin/nginx/logs/completesearch.cache.log completesearch_cache_log;
+   proxy_pass http://ncomportal_server;
+   proxy_next_upstream timeout error;
+   proxy_connect_timeout 10;
+   proxy_set_header Host $host;
+   proxy_set_header X-Real-IP $remote_addr;
+   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+   proxy_cache_key       "$host$request_uri";
+   proxy_cache           COMPLEXSEARCH;   # Cache Zone name
+   proxy_cache_valid     200 5m;   # Only for HTTP_200, 1 Hour cache
+   proxy_cache_use_stale updating; # Repeatable read
+   break;
+}
+
+# AutoComplexSearch AJAX Cache
+location ~ /svc/ajax/gateway/search/getSspAutoComplexSearchJson {
+   access_log /baekdoo/baekdoo_bin/nginx/logs/autocomplexsearch.cache.log autocomplexsearch_cache_log;
+   proxy_pass http://ncomportal_server;
+   proxy_next_upstream timeout error;
+   proxy_connect_timeout 10;
+   proxy_set_header Host $host;
+   proxy_set_header X-Real-IP $remote_addr;
+   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+   proxy_cache_key       "$host$request_uri";
+   proxy_cache           AUTOCOMPLEXSEARCH;   # Cache Zone name
+   proxy_cache_valid     200 5m;   # Only for HTTP_200, 1 Hour cache
+   proxy_cache_use_stale updating; # Repeatable read
+   break;
+}
+
+        # svc page intercept errors
+	location /svc/ {
+            if ($request_method !~ ^(GET|POST)$ ) {
+                return 403;
+            }
+            proxy_pass http://ncomportal_server;
+            proxy_next_upstream timeout error;
+
+            proxy_connect_timeout 60;
+            proxy_read_timeout    600;
+
+            proxy_buffers           8 16k;
+            proxy_buffer_size       8k;
+            proxy_busy_buffers_size 16k;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_intercept_errors on;
+        }
+
+	location / {
+            if ($request_method !~ ^(GET|POST)$ ) {
+                return 403;
+            }
+            proxy_pass http://ncomportal_server;
+            proxy_next_upstream timeout error;
+
+            proxy_connect_timeout 60;
+            proxy_read_timeout    600;
+
+            proxy_buffers           8 16k;
+            proxy_buffer_size       8k;
+            proxy_busy_buffers_size 16k;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+
+    server {
+        listen 443;
+        server_name.baekdoo.com;
+        access_log /baekdoo/baekdoo_bin/nginx/logs/ncomportal.access.log zero_log;
+        #access_log /baekdoo/baekdoo_bin/nginx/logs/ncomportal.access_time.log processing_time;
+        error_log /baekdoo/baekdoo_bin/nginx/logs/ncomportal.error.log;
+
+        ssl                 on;
+        ssl_certificate     ssl/wildcard.samsung.com_cert.pem;
+        ssl_certificate_key ssl/wildcard.samsung.com_key.pem;
+
+        ssl_session_timeout 5m;
+
+        ssl_protocols  SSLv3 TLSv1;
+        ssl_ciphers  !ADH:RC4+RSA:+HIGH:+EXP:+eNULL:AES256-SHA;
+        ssl_prefer_server_ciphers   on;
+
+        root /home/hudson/wwwdoc.baekdoo.com/;
+
+        location ~* \.(jpg|jpeg|gif|css|png|js|ico|html|htm|swf|pdf|flv|csv|mp4|apk|xml|snb|txt|json)$ {
+            access_log off;
+        }
+
+        location ~* \.(woff|ttf|eot|otf)$ {
+            add_header Access-Control-Allow-Origin *;
+        }
+
+        # svc page intercept errors
+	location /svc/ {
+            if ($request_method !~ ^(GET|POST)$ ) {
+                return 403;
+            }
+            proxy_pass http://ncomportal_server;
+            proxy_next_upstream timeout error;
+
+            proxy_connect_timeout 60;
+            proxy_read_timeout    600;
+
+            proxy_buffers           8 16k;
+            proxy_buffer_size       8k;
+            proxy_busy_buffers_size 16k;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	    proxy_intercept_errors on;
+        }
+
+        location / {
+            if ($request_method !~ ^(GET|POST)$ ) {
+                return 403;
+            }
+            proxy_pass http://ncomportal_server;
+            proxy_next_upstream timeout error;
+
+            proxy_connect_timeout 60;
+            proxy_read_timeout    600;
+
+            proxy_buffers           8 16k;
+            proxy_buffer_size       8k;
+            proxy_busy_buffers_size 16k;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+
+    server {
+       listen 80;
+        server_name www.samsungn.com;
+        error_log logs/n.com.error.log;
+        location / {
+            return 400;
+        }
+    }
+    # ---------------------------------------------------------------------
+    # Admin Portal server
+    # ---------------------------------------------------------------------
+    server {
+        listen 80;
+	listen 8280;	
+        server_name admin.baekdoo.com;
+        access_log /baekdoo/baekdoo_bin/nginx/logs/admin.access.log zero_log;
+        error_log /baekdoo/baekdoo_bin/nginx/logs/admin.error.log;
+
+#Parking Page
+#    error_page 404 /maintenance.html;
+#    error_page 403 /maintenance.html;
+#    error_page 500 /maintenance.html;
+#    error_page 504 /maintenance.html;
+#    error_page 502 /maintenance.html;
+
+        location ^~ /redmine/ {
+            proxy_pass http://redmine_server;
+        }
+
+        location ~* \.(jpg|jpeg|gif|css|png|js|ico|html|xml|xls|xlsx|zip|swf|pdf|csv|htm|bmp)$ {
+            root /home/hudson/wwwdoc/admin.baekdoo.com;
+            access_log off;
+        }
+
+        location ~* \.(woff|ttf|eot|otf)$ {
+            root /home/hudson/wwwdoc/admin.baekdoo.com;
+            add_header Access-Control-Allow-Origin *;
+        }
+
+        location / {
+            if ($request_method !~ ^(GET|POST)$ ) {
+                return 403;
+            }
+            root /home/hudson/wwwdoc/admin.baekdoo.com;
+            proxy_pass http://admin_server;
+            proxy_next_upstream timeout;
+
+            proxy_connect_timeout 60;
+            proxy_read_timeout    600;
+
+            proxy_buffers           8 16k;
+            proxy_buffer_size       8k;
+            proxy_busy_buffers_size 16k;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+
+    server {
+        listen 443;
+        server_name admin.baekdoo.com;
+        access_log /baekdoo/baekdoo_bin/nginx/logs/admin.access.log zero_log;
+        error_log /baekdoo/baekdoo_bin/nginx/logs/admin.error.log;
+
+        ssl                 on;
+        ssl_certificate     ssl/wildcard.baekdoo.com_cert.pem;
+        ssl_certificate_key ssl/wildcard.baekdoo.com_key.pem;
+
+        ssl_session_timeout 5m;
+
+        ssl_protocols  SSLv3 TLSv1;
+        ssl_ciphers  !ADH:RC4+RSA:+HIGH:+EXP:+eNULL:AES256-SHA;
+        ssl_prefer_server_ciphers   on;
+
+        location ~* \.(jpg|jpeg|gif|css|png|js|ico|html|xml|xls|zip|swf|pdf|csv|htm|bmp)$ {
+            root /home/hudson/wwwdoc/admin.baekdoo.com;
+            access_log off;
+        }
+
+        location ~* \.(woff|ttf|eot|otf)$ {
+            root /home/hudson/wwwdoc/admin.baekdoo.com;
+            add_header Access-Control-Allow-Origin *;
+        }
+
+        location / {
+            if ($request_method !~ ^(GET|POST)$ ) {
+                return 403;
+            }
+            root /home/hudson/wwwdoc/admin.baekdoo.com;
+            proxy_pass http://admin_server;
+            proxy_next_upstream timeout;
+
+            proxy_connect_timeout 60;
+            proxy_read_timeout    600;
+
+            proxy_buffers           8 16k;
+            proxy_buffer_size       8k;
+            proxy_busy_buffers_size 16k;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+
+    # ---------------------------------------------------------------------
+    # Gateway server
+    # ---------------------------------------------------------------------
+    server {
+        listen 80;
+        server_name gateway.baekdoo.com;
+        access_log /baekdoo/baekdoo_bin/nginx/logs/gateway.access.log zero_log;
+        error_log /baekdoo/baekdoo_bin/nginx/logs/gateway.error.log;
+
+        root /home/hudson/wwwdoc/gateway.baekdoo.com;
+
+        location / {
+            if ($request_method !~ ^(GET|POST)$ ) {
+                return 403;
+            }
+            proxy_pass http://gateway_server;
+            proxy_next_upstream timeout error;
+
+            proxy_connect_timeout 60;
+            proxy_read_timeout    600;
+
+            proxy_buffers           8 16k;
+            proxy_buffer_size       8k;
+            proxy_busy_buffers_size 16k;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        } 
+    }
+
+    # ---------------------------------------------------------------------
+    # Batch server
+    # ---------------------------------------------------------------------
+    server {
+        listen 80;
+        server_name batch.baekdoo.com;
+        access_log /baekdoo/baekdoo_bin/nginx/logs/batch.access.log zero_log;
+        error_log /baekdoo/baekdoo_bin/nginx/logs/batch.error.log;
+
+        root /home/hudson/wwwdoc/batch.baekdoo.com;
+
+        location / {
+            proxy_pass http://batch_server;
+            proxy_next_upstream timeout error;
+            proxy_connect_timeout 10;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+
+    # ---------------------------------------------------------------------
+    # Ncomservice server
+    # ---------------------------------------------------------------------
+    server {
+        listen 80;
+        server_name api.baekdoo.com;
+        access_log /baekdoo/baekdoo_bin/nginx/logs/baekdooservice.access.log zero_log;
+        error_log /baekdoo/baekdoo_bin/nginx/logs/baekdooservice.error.log;
+
+        root /home/hudson/wwwdoc/api.baekdoo.com;
+
+	location ~* \.(jpg|jpeg|gif|css|png|js|ico|html|swf)$ {
+            access_log off;
+        }
+
+ ############### 20130808 notice cache####################
+        location ~ /notice/noticeList.do {
+            access_log /baekdoo/baekdoo_bin/nginx/logs/notice.cache.log notice_cache_log;
+            proxy_pass http://baekdooservice_server;
+            proxy_next_upstream timeout error;
+            proxy_connect_timeout 10;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_cache_key       "$uri$request_body";
+            #proxy_cache_key       "$scheme$host$request_uri";
+            proxy_cache           NOTICE;   # Cache Zone name
+            proxy_cache_valid     200 5m;   # Only for HTTP_200, 1 Hour cache
+            proxy_cache_use_stale timeout; # Repeatable read
+            proxy_cache_methods   POST;
+     	    proxy_ignore_headers Set-Cookie;
+        }
+
+############### 20131024 serviceList cache####################
+        location ~ /service/serviceList.do {
+            access_log /baekdoo/baekdoo_bin/nginx/logs/servicelist.cache.log servicelist_cache_log;
+            proxy_pass http://baekdooservice_server;
+            proxy_next_upstream timeout error;
+            proxy_connect_timeout 10;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_cache_key       "$uri$request_body";
+            #proxy_cache_key       "$scheme$host$request_uri";
+            proxy_cache           SERVICELIST;   # Cache Zone name
+            proxy_cache_valid     200 10m;   # Only for HTTP_200, 1 Hour cache
+            proxy_cache_use_stale timeout; # Repeatable read
+            proxy_cache_methods   POST;
+	    proxy_ignore_headers Set-Cookie;
+        }
+        
+ ############### 20131024 serviceInformDetail cache####################
+        location ~ /service/serviceInformDetail.do {
+            access_log /baekdoo/baekdoo_bin/nginx/logs/serviceinformdetail.cache.log serviceinformdetail_cache_log;
+            proxy_pass http://baekdooservice_server;
+            proxy_next_upstream timeout error;
+            proxy_connect_timeout 10;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_cache_key       "$uri$request_body";
+            #proxy_cache_key       "$scheme$host$request_uri";
+            proxy_cache           SERVICEINFORMDETAIL;   # Cache Zone name
+            proxy_cache_valid     200 10m;   # Only for HTTP_200, 1 Hour cache
+            proxy_cache_use_stale timeout; # Repeatable read
+            proxy_cache_methods   POST;
+	    proxy_ignore_headers Set-Cookie;
+        }
+
+
+        location / {
+            if ($request_method !~ ^(GET|POST)$ ) {
+                return 403;
+            }
+            proxy_pass http://baekdooservice_server;
+            proxy_next_upstream timeout error;
+            proxy_connect_timeout 10;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+
+    server {
+        listen 443;
+        server_name api.baekdoo.com;
+        access_log /baekdoo/baekdoo_bin/nginx/logs/baekdooservice.access.log zero_log;
+        error_log /baekdoo/baekdoo_bin/nginx/logs/baekdooservice.error.log;
+
+        ssl                 on;
+        ssl_certificate     ssl/wildcard.baekdoo.com_cert.pem;
+        ssl_certificate_key ssl/wildcard.baekdoo.com_key.pem;
+
+        ssl_session_timeout 5m;
+
+        ssl_protocols  SSLv3 TLSv1;
+        ssl_ciphers  !ADH:RC4+RSA:+HIGH:+EXP:+eNULL:AES256-SHA;
+        ssl_prefer_server_ciphers   on;
+
+        root /home/hudson/wwwdoc/api.baekdoo.com;
+
+        location / {
+            if ($request_method !~ ^(GET|POST)$ ) {
+                return 403;
+            }
+            proxy_pass http://baekdooservice_server;
+            proxy_next_upstream timeout error;
+            proxy_connect_timeout 10;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+
+}

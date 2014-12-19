@@ -1,0 +1,26 @@
+1)Install Library
+    - gcc,make,pcre-devel,openssl-devel
+    - yum info [library], rpm -qa | grep [library]
+    - yum install [library],rpm -Uvh [library]
+2)Nginx Install Preparation
+    - mkdir -p /baekdoo/baekdoo_bin/servers/nginx
+    - mkdir -p /baekdoo/baekdoo_bin/nginx
+    *(option) mkdir -p  /baekdoo/baekdoo_bin/nginx/proxy_cache
+    - Nginx download url Copy
+        http://wiki.nginx.org/install
+    - cd    /baekdoo/baekdoo_bin/servers/nginx
+    - wget [copy url]
+    - tar -zxvf file_name
+3)Add user
+    - su - root
+    - adduser nginx
+    *(option) chown nginx:nginx /baekdoo/baekdoo_bin/nginx/proxy_cache
+4)Compile/Install
+    - ./configure --prefix=/baekdoo/baekdoo_bin/nginx --with-http_ssl_module --with-http_realip_module --with-http_gzip_static_module
+    - make, make intall
+5)Confirm install
+	- cd /baekdoo/baekdoo_bin/nginx/sbin
+	- ./nginx -t
+	- ./nginx
+	- ps -ef | grep nginx
+	- netstat -antp | grep LISTEN
