@@ -1,0 +1,30 @@
+1)Install Library
+    - fuse, fuse-devel,fuse-libs,compat-readline,libibverbs,libibverbs-devel,rsync(3.0.7 upper)
+    - yum info [library], rpm -qa | grep [library]
+    - yum install [library],rpm -Uvh [library]
+2)Gluster Install Preparation
+    - Gluster download url Copy
+        http://download.gluster.org/pub/gluster/3.3/3.3.1/
+	- Install Files
+		glusterfs-3.3.1-1.[OS version].[arch].rpm
+		glusterfs-server-3.3.1-1.[OS version].[arch].rpm
+		glusterfs-geo-replication-3.3.1-1.[OS version].[arch].rpm
+3)Install Gluster(root)
+	- rpm -Uvh glusterfs-*
+	- chkconfig glusterd on
+4)gluster
+	- lsof | grep TCP | grep glusterd | grep LISTEN
+    - telnet gluster2[ip]:[port]
+	- gluster > peer probe gluster2[ip]
+	- gluster > peer status
+	- gluster > volume create daekdoonas replica 2 gluster1:/nas_disk1 gluster2:/nas_disk1 gluster1:/nas_disk2 gluster2:/nas_disk2 gluster1:/nas_disk3 gluster2:/nas_disk3
+	- gluster > volume set baekdoonas performance.cache-size 256MB
+5)gluster client install
+	a. library:fuse, fuse-devel, fuse-libs
+	b.  install file:
+		glusterfs-3.3.1-1.[OS version].[arch].rpm
+		glusterfs-fuse-3.3.1-1.[OS version].[arch].rpm
+	c. modprobe fuse ,  vim /etc/rc.local --> /sbin/modprobe fuse
+	d. mount -t glusterfs gluster1[ip]:/[volume name] /baekdoo
+	e. chkconfig netfs on
+	f. vim /etc/fstab --> gluster1[ip]:/[volume name] /baekdoo glusterfs defaults,_netdev 0 0
