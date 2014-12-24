@@ -1,0 +1,4 @@
+20141224 VMware NAT and Private IP Port Forwarding
+	- VMware NAT : Subset 192.168.70.0 NetMast 255.255.255.0
+	- Port Forwarding : Subset 192.168.0.0 NetMast 255.255.0.0
+
